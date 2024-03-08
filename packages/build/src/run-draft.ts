@@ -16,26 +16,26 @@ export async function runDraft(
   downloadArtifactFromEvergreen: typeof downloadArtifactFromEvergreenFn = downloadArtifactFromEvergreenFn,
   ensureGithubReleaseExistsAndUpdateChangelog: typeof ensureGithubReleaseExistsAndUpdateChangelogFn = ensureGithubReleaseExistsAndUpdateChangelogFn
 ): Promise<void> {
-  if (
-    !config.triggeringGitTag ||
-    !getReleaseVersionFromTag(config.triggeringGitTag)
-  ) {
-    console.error(
-      'mongosh: skipping draft as not triggered by a git tag that matches a draft/release tag'
-    );
-    return;
-  }
+  // if (
+  //   !config.triggeringGitTag ||
+  //   !getReleaseVersionFromTag(config.triggeringGitTag)
+  // ) {
+  //   console.error(
+  //     'mongosh: skipping draft as not triggered by a git tag that matches a draft/release tag'
+  //   );
+  //   return;
+  // }
 
   if (!config.packageInformation) {
     throw new Error('Missing package information from config');
   }
 
   const githubReleaseTag = `v${config.version}`;
-  await ensureGithubReleaseExistsAndUpdateChangelog(
-    config.version,
-    githubReleaseTag,
-    githubRepo
-  );
+  // await ensureGithubReleaseExistsAndUpdateChangelog(
+  //   config.version,
+  //   githubReleaseTag,
+  //   githubRepo
+  // );
 
   const tmpDir = path.join(
     __dirname,
@@ -69,27 +69,27 @@ export async function runDraft(
 
     const signatureFile = `${downloadedArtifact}.sig`;
 
-    await Promise.all(
-      [
-        [downloadedArtifact, tarballFile.contentType],
-        [signatureFile, 'application/pgp-signature'],
-      ].flatMap(([path, contentType]) =>
-        path
-          ? [
-              uploadToDownloadCenter(
-                path,
-                config.downloadCenterAwsKey as string,
-                config.downloadCenterAwsSecret as string
-              ),
+    // await Promise.all(
+    //   [
+    //     [downloadedArtifact, tarballFile.contentType],
+    //     [signatureFile, 'application/pgp-signature'],
+    //   ].flatMap(([path, contentType]) =>
+    //     path
+    //       ? [
+    //           uploadToDownloadCenter(
+    //             path,
+    //             config.downloadCenterAwsKey as string,
+    //             config.downloadCenterAwsSecret as string
+    //           ),
 
-              githubRepo.uploadReleaseAsset(githubReleaseTag, {
-                path,
-                contentType,
-              }),
-            ]
-          : []
-      )
-    );
+    //           githubRepo.uploadReleaseAsset(githubReleaseTag, {
+    //             path,
+    //             contentType,
+    //           }),
+    //         ]
+    //       : []
+    //   )
+    // );
   }
 }
 
