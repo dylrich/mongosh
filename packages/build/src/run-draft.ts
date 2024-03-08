@@ -1,43 +1,26 @@
-import { promises as fs, constants as fsConstants } from 'fs';
+import { promises as fs } from 'fs';
 import path from 'path';
 import type { Config } from './config';
 import { ALL_PACKAGE_VARIANTS, getReleaseVersionFromTag } from './config';
 import { uploadArtifactToDownloadCenter as uploadArtifactToDownloadCenterFn } from './download-center';
 import { downloadArtifactFromEvergreen as downloadArtifactFromEvergreenFn } from './evergreen';
-import { notarizeArtifact as notarizeArtifactFn } from './packaging';
 import { generateChangelog as generateChangelogFn } from './git';
 import type { GithubRepo } from '@mongodb-js/devtools-github-repo';
 import { getPackageFile } from './packaging';
+import { sign } from '@mongodb-js/signing-utils';
 
 export async function runDraft(
   config: Config,
   githubRepo: GithubRepo,
   uploadToDownloadCenter: typeof uploadArtifactToDownloadCenterFn = uploadArtifactToDownloadCenterFn,
   downloadArtifactFromEvergreen: typeof downloadArtifactFromEvergreenFn = downloadArtifactFromEvergreenFn,
-  ensureGithubReleaseExistsAndUpdateChangelog: typeof ensureGithubReleaseExistsAndUpdateChangelogFn = ensureGithubReleaseExistsAndUpdateChangelogFn,
-  notarizeArtifact: typeof notarizeArtifactFn = notarizeArtifactFn
+  ensureGithubReleaseExistsAndUpdateChangelog: typeof ensureGithubReleaseExistsAndUpdateChangelogFn = ensureGithubReleaseExistsAndUpdateChangelogFn
 ): Promise<void> {
-  if (
-    !config.triggeringGitTag ||
-    !getReleaseVersionFromTag(config.triggeringGitTag)
-  ) {
-    console.error(
-      'mongosh: skipping draft as not triggered by a git tag that matches a draft/release tag'
-    );
-    return;
-  }
-
   if (!config.packageInformation) {
     throw new Error('Missing package information from config');
   }
 
   const githubReleaseTag = `v${config.version}`;
-  await ensureGithubReleaseExistsAndUpdateChangelog(
-    config.version,
-    githubReleaseTag,
-    githubRepo
-  );
-
   const tmpDir = path.join(
     __dirname,
     '..',
@@ -61,21 +44,34 @@ export async function runDraft(
       tmpDir
     );
 
-    let signatureFile: string | undefined;
-    try {
-      await notarizeArtifact(downloadedArtifact, {
-        signingKeyName: config.notarySigningKeyName || '',
-        authToken: config.notaryAuthToken || '',
-        signingComment: 'Evergreen Automatic Signing (mongosh)',
-      });
-      signatureFile = downloadedArtifact + '.sig';
-      await fs.access(signatureFile, fsConstants.R_OK);
-    } catch (err: any) {
-      console.warn(
-        `Skipping expected signature file for ${downloadedArtifact}: ${err.message}`
+    const clientOptions = {
+      client: 'local' as const,
+      signingMethod: getSigningMethod(tarballFile.path),
+    };
+
+    await sign(downloadedArtifact, clientOptions);
+
+    const signatureFile = `${downloadedArtifact}.sig`;
+
+    return;
+
+    if (
+      !config.triggeringGitTag ||
+      !getReleaseVersionFromTag(config.triggeringGitTag)
+    ) {
+      console.error(
+        'mongosh: skipping draft as not triggered by a git tag that matches a draft/release tag'
       );
-      signatureFile = undefined;
+      return;
     }
+
+    return;
+
+    await ensureGithubReleaseExistsAndUpdateChangelog(
+      config.version,
+      githubReleaseTag,
+      githubRepo
+    );
 
     await Promise.all(
       [
@@ -98,6 +94,18 @@ export async function runDraft(
           : []
       )
     );
+  }
+}
+
+function getSigningMethod(src: string) {
+  switch (path.extname(src)) {
+    case '.exe':
+    case '.msi':
+      return 'jsign' as const;
+    case '.rpm':
+      return 'rpm_gpg' as const;
+    default:
+      return 'gpg' as const;
   }
 }
 

@@ -39,7 +39,7 @@ export interface Config {
     repo: string;
   };
   isPatch?: boolean;
-  triggeringGitTag?: string;
+  triggeringGitTag: string;
   packageInformation?: PackageInformationProvider;
   cryptSharedLibPath: string;
   artifactUrlFile?: string;
