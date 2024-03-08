@@ -1,4 +1,4 @@
-import { promises as fs, constants as fsConstants } from 'fs';
+import { promises as fs } from 'fs';
 import path from 'path';
 import type { Config } from './config';
 import { ALL_PACKAGE_VARIANTS, getReleaseVersionFromTag } from './config';
@@ -16,27 +16,11 @@ export async function runDraft(
   downloadArtifactFromEvergreen: typeof downloadArtifactFromEvergreenFn = downloadArtifactFromEvergreenFn,
   ensureGithubReleaseExistsAndUpdateChangelog: typeof ensureGithubReleaseExistsAndUpdateChangelogFn = ensureGithubReleaseExistsAndUpdateChangelogFn
 ): Promise<void> {
-  if (
-    !config.triggeringGitTag ||
-    !getReleaseVersionFromTag(config.triggeringGitTag)
-  ) {
-    console.error(
-      'mongosh: skipping draft as not triggered by a git tag that matches a draft/release tag'
-    );
-    return;
-  }
-
   if (!config.packageInformation) {
     throw new Error('Missing package information from config');
   }
 
   const githubReleaseTag = `v${config.version}`;
-  await ensureGithubReleaseExistsAndUpdateChangelog(
-    config.version,
-    githubReleaseTag,
-    githubRepo
-  );
-
   const tmpDir = path.join(
     __dirname,
     '..',
@@ -68,6 +52,23 @@ export async function runDraft(
     await sign(downloadedArtifact, clientOptions);
 
     const signatureFile = `${downloadedArtifact}.sig`;
+    return;
+
+    if (
+      !config.triggeringGitTag ||
+      !getReleaseVersionFromTag(config.triggeringGitTag)
+    ) {
+      console.error(
+        'mongosh: skipping draft as not triggered by a git tag that matches a draft/release tag'
+      );
+      return;
+    }
+
+    await ensureGithubReleaseExistsAndUpdateChangelog(
+      config.version,
+      githubReleaseTag,
+      githubRepo
+    );
 
     await Promise.all(
       [
