@@ -12975,7 +12975,7 @@ tasks:
   # RELEASE TASKS
   ###
   - name: release_draft
-    git_tag_only: true
+    # git_tag_only: true
     depends_on:
       - name: ".smoke-test"
         variant: "*"
@@ -12997,34 +12997,34 @@ tasks:
       - func: release_draft
         vars:
           node_js_version: "20.11.1"
-  - name: release_publish_dry_run
-    git_tag_only: true
-    exec_timeout_secs: 86400
-    depends_on:
-      - name: release_draft
-    commands:
-      - func: checkout
-      - func: install
-        vars:
-          node_js_version: "20.11.1"
-      - func: release_publish_dry_run
-        vars:
-          node_js_version: "20.11.1"
-  - name: release_publish
-    tags: ["publish"]
-    git_tag_only: true
-    exec_timeout_secs: 86400
-    depends_on:
-      - name: compile_ts
-        variant: linux_unit
-    commands:
-      - func: checkout
-      - func: install
-        vars:
-          node_js_version: "20.11.1"
-      - func: release_publish
-        vars:
-          node_js_version: "20.11.1"
+  # - name: release_publish_dry_run
+  #   git_tag_only: true
+  #   exec_timeout_secs: 86400
+  #   depends_on:
+  #     - name: release_draft
+  #   commands:
+  #     - func: checkout
+  #     - func: install
+  #       vars:
+  #         node_js_version: "20.11.1"
+  #     - func: release_publish_dry_run
+  #       vars:
+  #         node_js_version: "20.11.1"
+  # - name: release_publish
+  #   tags: ["publish"]
+  #   git_tag_only: true
+  #   exec_timeout_secs: 86400
+  #   depends_on:
+  #     - name: compile_ts
+  #       variant: linux_unit
+  #   commands:
+  #     - func: checkout
+  #     - func: install
+  #       vars:
+  #         node_js_version: "20.11.1"
+  #     - func: release_publish
+  #       vars:
+  #         node_js_version: "20.11.1"
 
 # Need to run builds for every possible build variant.
 buildvariants:
@@ -13968,8 +13968,8 @@ buildvariants:
     run_on: ubuntu2004-small
     tasks:
       - name: release_draft
-      - name: release_publish_dry_run
-      - name: release_publish
+      # - name: release_publish_dry_run
+      # - name: release_publish
 
   - name: generate_license_and_vulnerability_report
     display_name: "License and Vulnerability Report"
